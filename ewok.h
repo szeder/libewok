@@ -98,6 +98,14 @@ void ewah_not(struct ewah_bitmap *self);
  */
 void ewah_each_bit(struct ewah_bitmap *self, void (*callback)(size_t, void*), void *payload);
 
+/*
+ * Returns the number of bits set on the bitmap.
+ *
+ * This is an efficient operation that does not fully decompress
+ * the bitmap.
+ */
+size_t ewah_popcount(struct ewah_bitmap *self);
+
 /**
  * Set a given bit on the bitmap.
  *

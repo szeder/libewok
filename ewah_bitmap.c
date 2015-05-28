@@ -284,6 +284,30 @@ void ewah_each_bit(struct ewah_bitmap *self, void (*callback)(size_t, void*), vo
 	}
 }
 
+size_t ewah_popcount(struct ewah_bitmap *self)
+{
+	size_t pointer = 0;
+	size_t popcount = 0;
+
+	while (pointer < self->buffer_size) {
+		size_t k;
+		eword_t *word = &self->buffer[pointer];
+
+		if (rlw_get_run_bit(word))
+			popcount += rlw_get_running_len(word) * BITS_IN_WORD;
+
+		++pointer;
+
+		for (k = 0; k < rlw_get_literal_words(word); ++k) {
+			popcount += ewah_bit_popcount64(self->buffer[pointer]);
+			++pointer;
+		}
+	}
+
+	return popcount;
+}
+
+
 struct ewah_bitmap *ewah_new(void)
 {
 	struct ewah_bitmap *bitmap;
