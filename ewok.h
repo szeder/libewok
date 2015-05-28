@@ -133,6 +133,36 @@ void ewah_set(struct ewah_bitmap *self, size_t i);
  */
 size_t ewah_add_empty_words(struct ewah_bitmap *self, bool v, size_t number);
 
+struct ewah_bit_iterator {
+	const eword_t *buffer;
+	size_t buffer_size;
+
+	const eword_t *rlw;
+	size_t rl_bits_done;
+	size_t lw_done;
+	size_t lw_bits_done;
+
+	size_t pos;
+};
+
+/**
+ * Initialize a new iterator to run through every single bit that
+ * had been set on the bitmap, without decompressing the bitmap.
+ */
+void ewah_bit_iterator_init(struct ewah_bit_iterator *it,
+			    struct ewah_bitmap *parent);
+
+/**
+ * Yield the position of every single bit that has been set on the bitmap.
+ *
+ * The iterator can be stack allocated. The underlying bitmap must not be freed
+ * before the iteration is over.
+ *
+ * This is an efficient operation that does not fully decompress
+ * the bitmap.
+ */
+int ewah_bit_iterator_next(size_t *pos, struct ewah_bit_iterator *it);
+
 struct ewah_iterator {
 	const eword_t *buffer;
 	size_t buffer_size;

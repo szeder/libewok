@@ -338,6 +338,58 @@ void ewah_free(struct ewah_bitmap *bitmap)
 	free(bitmap);
 }
 
+void ewah_bit_iterator_init(struct ewah_bit_iterator *it,
+			    struct ewah_bitmap *parent)
+{
+	it->buffer = parent->buffer;
+	it->buffer_size = parent->buffer_size;
+	it->rlw = parent->buffer;
+	it->rl_bits_done = 0;
+	it->lw_done = 0;
+	it->lw_bits_done = 0;
+	it->pos = 0;
+}
+
+int ewah_bit_iterator_next(size_t *pos, struct ewah_bit_iterator *it)
+{
+	while (it->rlw < it->buffer+it->buffer_size) {
+		size_t len = rlw_get_running_len(it->rlw) * BITS_IN_WORD;
+		if (it->rl_bits_done < len) {
+			if (rlw_get_run_bit(it->rlw)) {
+				*pos = it->pos;
+				it->rl_bits_done++;
+				it->pos++;
+				return 1;
+			} else {
+				it->rl_bits_done = len;
+				it->pos += len;
+			}
+		}
+
+		size_t literal_count = rlw_get_literal_words(it->rlw);
+		for (; it->lw_done < literal_count; it->lw_done++) {
+			eword_t literal_word = *(it->rlw+1+it->lw_done);
+			while (it->lw_bits_done < BITS_IN_WORD) {
+				if (literal_word & ((eword_t)1 << it->lw_bits_done)) {
+					*pos = it->pos;
+					it->lw_bits_done++;
+					it->pos++;
+					return 1;
+				}
+				it->lw_bits_done++;
+				it->pos++;
+			}
+			it->lw_bits_done = 0;
+		}
+
+		it->rlw += literal_count+1;
+		it->rl_bits_done = 0;
+		it->lw_done = 0;
+	}
+
+	return 0;
+}
+
 static void read_new_rlw(struct ewah_iterator *it)
 {
 	const eword_t *word = NULL;
